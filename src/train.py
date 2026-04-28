@@ -61,7 +61,7 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=train_cfg.learning_rate)
 
     # ---- DataLoader ----
-    images, labels = load_data(train_cfg.batch_size)
+    images, labels = load_data()  # 加载全部数据，由 DataLoader 分批
     dataset = LoadedDataset(images, labels, image_size=model_cfg.image_size)
     dataloader = DataLoader(
         dataset, batch_size=train_cfg.batch_size, shuffle=True,
