@@ -1,2 +1,37 @@
-通过DiT模型生成MC风格材质的项目。
-数据集从公开发布的mod中解包。
+# MC-Gen
+
+基于 DiT (Diffusion Transformer) 生成 Minecraft 风格材质的项目。数据集从公开发布的 mod 中解包。
+
+## 结构
+
+```
+src/
+├── config.py              # 模型超参与训练参数
+├── train.py               # 训练入口
+├── inference.py           # 推理入口
+└── dit/
+    ├── model.py           # DiT 模型定义（AdaLN + self/cross-attn + FFN）
+    ├── diffusion.py       # DDPM 扩散/采样流程
+    └── text_encoder.py    # 文本编码器
+```
+
+## 原理
+
+- **DiT**：替换 UNet 的骨干，用 AdaLN 将时间步信息注入每层 Transformer
+- **Cross-Attention**：将文本描述作为 K/V，指导材质生成方向
+- **DDPM**：前向加权加噪 → 反向逐步去噪，CFG 增强文本引导
+
+## 使用
+
+```bash
+# 训练
+python src/train.py
+
+# 推理
+python src/inference.py
+```
+
+## 依赖
+
+- Python 3.10+
+- PyTorch 2.x
