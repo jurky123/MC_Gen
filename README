@@ -22,13 +22,9 @@ src/
 - **DDPM**：前向加权加噪 → 反向逐步去噪，CFG 增强文本引导
 
 ## 使用
-
-```bash
-# 训练
-python src/train.py
-
-# 推理
-python src/inference.py
+1.构建数据集，运行modrinth_downloader.py下载jar文件，再运行extract_textures解包出图片，默认只提取item和block
+2.训练python src/train.py训练时默认只使用item进行训练，参数在config.py的TrainConfig中调整。
+3.推理python src/inference.py推理参数通过命令行传入。
 ```
 
 ## 依赖
