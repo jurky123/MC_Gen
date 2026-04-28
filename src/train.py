@@ -40,6 +40,10 @@ class LoadedDataset(Dataset):
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    if device.type == "cuda":
+        print(f"  GPU: {torch.cuda.get_device_name(0)}")
+        print(f"  VRAM: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
 
     model_cfg = ModelConfig()
     train_cfg = TrainingConfig()
@@ -50,13 +54,13 @@ def main():
 
     # ---- 模型 ----
     model = DiT(model_cfg).to(device)
-    diffusion = Diffusion(train_cfg, model)
+    diffusion = Diffusion(train_cfg, model)  # buffer 自动跟随模型 device
 
     # ---- 优化器 ----
     optimizer = torch.optim.AdamW(model.parameters(), lr=train_cfg.learning_rate)
 
     # ---- DataLoader ----
-    images, labels = load_data()  # 返回 PIL Image 列表和文本标签列表
+    images, labels = load_data(train_cfg.batch_size)
     dataset = LoadedDataset(images, labels, image_size=model_cfg.image_size)
     dataloader = DataLoader(
         dataset, batch_size=train_cfg.batch_size, shuffle=True,
@@ -65,6 +69,9 @@ def main():
 
     # ---- 路径 ----
     os.makedirs(train_cfg.checkpoint_dir, exist_ok=True)
+
+    # ---- 预热 text_encoder（首次调用下载并移到 device，后续不再动） ----
+    encode_text(["warmup"], device=device)
 
     # ============================================================
     # 2. 训练循环（epoch × batch）
