@@ -25,13 +25,14 @@ class LoadedDataset(Dataset):
         self.transform = transforms.Compose([
             transforms.Resize((image_size, image_size)),
             transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5, 0.5), (0.5, 0.5, 0.5, 0.5)),  # [0,1] → [-1,1]
         ])
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
-        image = self.transform(self.images[idx].convert("RGB"))
+        image = self.transform(self.images[idx].convert("RGBA"))
         label = self.labels[idx]
         return image, label
 
@@ -120,6 +121,22 @@ def main():
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "loss": avg_loss,
+                "model_config": {
+                    "embed_dim": model_cfg.embed_dim,
+                    "num_heads": model_cfg.num_heads,
+                    "num_layers": model_cfg.num_layers,
+                    "ffn_dim": model_cfg.ffn_dim,
+                    "dropout": model_cfg.dropout,
+                    "image_size": model_cfg.image_size,
+                    "patch_size": model_cfg.patch_size,
+                    "in_channels": model_cfg.in_channels,
+                    "text_dim": model_cfg.text_dim,
+                },
+                "train_config": {
+                    "num_timesteps": train_cfg.num_timesteps,
+                    "beta_start": train_cfg.beta_start,
+                    "beta_end": train_cfg.beta_end,
+                },
             }, ckpt_path)
             print(f"  -> checkpoint saved: {ckpt_path}")
 
