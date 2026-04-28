@@ -19,9 +19,9 @@ def load_data(batch_size=None):
         }
 
     # 构建x：图片文件的内容
-    x = [Image.open(os.path.join("dataset/images", fn)) for fn in image_files]
+    images = [Image.open(os.path.join("dataset/images", fn)) for fn in image_files]
 
     # 构建y：将图片文件名在labels.jsonl中查找对应的标签
-    y = [label_map[fn] for fn in image_files]
+    labels = [label_map[fn] for fn in image_files]
 
-    return x, y
+    return images, labels

@@ -1,0 +1,2 @@
+通过modrinth_downloader.py爬取jar文件，然后使用extract_textures.py提取其中的图片文件，最后将图片文件存放在dataset文件夹下
+使用load_data.py提取数据，构建出x，y对
