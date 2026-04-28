@@ -129,6 +129,28 @@ class DiT(nn.Module):
         self.final_norm = nn.LayerNorm(config.embed_dim, elementwise_affine=False)
         self.final_proj = nn.Linear(config.embed_dim, self.out_patch_dim)
 
+        self._init_weights()
+
+    def _init_weights(self):
+        """DiT 标准权重初始化"""
+        # Linear / Conv 用 Gaussian 初始化，std 由 hidden_size 决定
+        std = 1.0 / (self.config.embed_dim ** 0.5)
+        for module in self.modules():
+            if isinstance(module, (nn.Linear, nn.Conv2d)):
+                nn.init.normal_(module.weight, mean=0.0, std=std)
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0.0)
+        # pos_embed 已用 N(0, 0.02) 初始化，不动
+
+        # adaLN_modulation 的最后一层初始化为零 → 初始时 AdaLN 等价于恒等变换
+        for block in self.blocks:
+            nn.init.constant_(block.adaLN_modulation[1].weight, 0.0)
+            nn.init.constant_(block.adaLN_modulation[1].bias, 0.0)
+
+        # 最终输出层初始化为零 → 模型初始预测零噪声
+        nn.init.constant_(self.final_proj.weight, 0.0)
+        nn.init.constant_(self.final_proj.bias, 0.0)
+
     def encode_time_stamp(self, step):
         """
         正弦余弦位置编码风格的时间步编码。
