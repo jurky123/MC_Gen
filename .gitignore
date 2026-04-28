@@ -1,3 +1,4 @@
 data/dataset/*
 data/jars/*
 checkpoints/*
+.claude/
