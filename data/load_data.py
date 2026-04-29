@@ -1,36 +1,35 @@
-"""导入读取图片，读取json相关的库"""
-import json
+"""从 parquet 数据集加载图片和标签"""
 import os
+from io import BytesIO
+from pathlib import Path
 from PIL import Image
+import pandas as pd
 
-IMG_DIR = os.path.join("data", "dataset", "images")
-LABEL_FILE = os.path.join("data", "dataset", "labels.jsonl")
+DATA_DIR = os.path.join("data", "dataset", "data_large")
 
 
 def load_data(batch_size=None):
-    # 读取dataset文件夹下的图片文件
-    image_files = sorted(
-        f for f in os.listdir(IMG_DIR) if f.endswith(".png")
-    )
+    # 读取所有 parquet 文件
+    dfs = []
+    for fn in sorted(Path(DATA_DIR).glob("*.parquet")):
+        dfs.append(pd.read_parquet(fn))
+    df = pd.concat(dfs, ignore_index=True)
 
-    # 读取dataset文件夹下的labels.jsonl文件，提取文件名→标签和类别映射
-    with open(LABEL_FILE, "r", encoding="utf-8") as f:
-        records = [
-            json.loads(line)
-            for line in f if line.strip()
-        ]
-        label_map = {r["filename"]: r["label"] for r in records}
-        category_map = {r["filename"]: r["category"] for r in records}
+    # 只保留 type 为 "item" 的数据
+    df = df[df["type"] == "item"]
+    df = df.reset_index(drop=True)
 
-    # 过滤：只保留 category 为 "item" 的图片
-    image_files = [fn for fn in image_files if category_map.get(fn) == "item"]
     # 截取指定数量
-    image_files = image_files[:batch_size]
+    if batch_size is not None:
+        df = df.head(batch_size)
 
-    # 构建图片
-    images = [Image.open(os.path.join(IMG_DIR, fn)) for fn in image_files]
+    # 构建图片列表：从 bytes 解码为 PIL Image
+    images = []
+    for img_data in df["image"]:
+        img = Image.open(BytesIO(img_data["bytes"]))
+        images.append(img)
 
-    # 构建标签列表
-    labels = [label_map[fn] for fn in image_files]
+    # 标签列表：文件名去掉扩展名
+    labels = [Path(fn).stem for fn in df["file_name"]]
 
     return images, labels
