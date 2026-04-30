@@ -3,6 +3,9 @@
 基于 DiT (Diffusion Transformer) 生成 Minecraft 风格材质的项目。数据集从公开发布的 mod 中解包。
 
 
+<img src="large.png" width="512" alt="生成效果">
+
+
 由于可能涉及版权问题，项目不提供数据集，也不提供训练好的权重文件，只提供完整训练推理代码。如需要请自行获取数据集并训练。
 ## 结构
 
@@ -51,5 +54,4 @@ pyarrow>=12.0.0
 
 目前DDIM采样效果不好，inference-steps设置为1000使用DDPM采样，效果较好。
 
-<img src="large.png" width="512" alt="生成效果">
 
