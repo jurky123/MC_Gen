@@ -49,6 +49,7 @@ pyarrow>=12.0.0
 
 使用huggingface上约55w张item图片，采用单张40GB显存L40训练约12小时(batch_size=128，占用约30g显存，调到32后显存占用预计低于8g，可在中高端游戏显卡上训练)，14个epoch后虽然loss还没收敛，但能生成出质量比较好并且符合prompt的图片。
 
+目前DDIM采样效果不好，inference-steps设置为1000使用DDPM采样，效果较好。
 
 <img src="large.png" width="512" alt="生成效果">
 

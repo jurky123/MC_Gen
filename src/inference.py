@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description="DiT 材质生成推理")
     parser.add_argument("--prompt", "-p", type=str, default="fire_blade",
                         help="文本描述")
-    parser.add_argument("--checkpoint", "-c", type=str, default="checkpoints/dit_epoch14.pth",
+    parser.add_argument("--checkpoint", "-c", type=str, default="checkpoints/dit_epoch16.pth",
                         help="模型检查点路径")
     parser.add_argument("--output", "-o", type=str, default="output.png",
                         help="输出图片路径")
