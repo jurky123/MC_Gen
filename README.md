@@ -37,4 +37,5 @@ src/
 ## 效果
 
 采用单张40GB显存L40训练约12小时，14个epoch后虽然loss还没收敛，但能生成出质量比较好并且符合prompt的图片。
-![](output.png)
+<img src="output.png" width="512" alt="生成效果">
+
