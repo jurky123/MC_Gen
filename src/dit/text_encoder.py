@@ -27,6 +27,10 @@ def encode_text(texts, device="cpu"):
     """
     将文本列表编码为 hidden states，用于 cross-attention。
 
+    下划线会被替换为空格 —— CLIP 的 BPE tokenizer 将 _ 视为独立 token，
+    而空格才是 CLIP 训练数据中的正常词分隔符。"iron_bow" 替换为 "iron bow" 后
+    分词质量和 embedding 语义更准确。
+
     Args:
         texts: str 或 list[str]
         device: 输出张量所在设备
@@ -34,7 +38,10 @@ def encode_text(texts, device="cpu"):
         last_hidden_state: [B, T, 512]
     """
     _load_models()
-    # 仅在设备变化时才移动，避免每 batch 重复搬运
+    if isinstance(texts, str):
+        texts = texts.replace("_", " ")
+    else:
+        texts = [t.replace("_", " ") for t in texts]
     if str(_text_encoder.device) != str(device):
         _text_encoder.to(device)
     with torch.no_grad():

@@ -40,6 +40,12 @@ class LoadedDataset(Dataset):
 # ──────────────────── 主函数 ────────────────────
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="DiT 训练")
+    parser.add_argument("--resume", "-r", type=str, default=None,
+                        help="从指定 checkpoint 恢复训练（例如 checkpoints/dit_epoch100.pth）")
+    args = parser.parse_args()
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     if device.type == "cuda":
@@ -49,35 +55,40 @@ def main():
     model_cfg = ModelConfig()
     train_cfg = TrainingConfig()
 
-    # ============================================================
-    # 1. 初始化部分（只执行一次）
-    # ============================================================
-
     # ---- 模型 ----
     model = DiT(model_cfg).to(device)
-    diffusion = Diffusion(train_cfg, model)  # buffer 自动跟随模型 device
+    diffusion = Diffusion(train_cfg, model)
 
     # ---- 优化器 ----
     optimizer = torch.optim.AdamW(model.parameters(), lr=train_cfg.learning_rate)
 
+    start_epoch = 1
+
+    # ---- 断点续训：恢复模型、优化器、epoch ----
+    if args.resume is not None:
+        print(f"Resuming from {args.resume} ...")
+        ckpt = torch.load(args.resume, map_location=device)
+        model.load_state_dict(ckpt["model_state_dict"])
+        optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        start_epoch = ckpt["epoch"] + 1
+        print(f"  restored epoch={ckpt['epoch']}, loss={ckpt.get('loss', 'N/A')}, "
+              f"resuming from epoch {start_epoch}")
+
     # ---- DataLoader ----
-    images, labels = load_data()  # 加载全部数据，由 DataLoader 分批
+    images, labels = load_data()
     dataset = LoadedDataset(images, labels, image_size=model_cfg.image_size)
     dataloader = DataLoader(
         dataset, batch_size=train_cfg.batch_size, shuffle=True,
         num_workers=0, pin_memory=True
     )
 
-    # ---- 路径 ----
     os.makedirs(train_cfg.checkpoint_dir, exist_ok=True)
-
-    # ---- 预热 text_encoder（首次调用下载并移到 device，后续不再动） ----
     encode_text(["warmup"], device=device)
 
     # ============================================================
-    # 2. 训练循环（epoch × batch）
+    # 训练循环
     # ============================================================
-    for epoch in range(1, train_cfg.epochs + 1):
+    for epoch in range(start_epoch, train_cfg.epochs + 1):
         total_loss = 0.0
 
         for images, texts in dataloader:

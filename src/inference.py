@@ -17,13 +17,13 @@ from dit.text_encoder import encode_text
 
 def main():
     parser = argparse.ArgumentParser(description="DiT 材质生成推理")
-    parser.add_argument("--prompt", "-p", type=str, default="fire_flower",
+    parser.add_argument("--prompt", "-p", type=str, default="iron_bow",
                         help="文本描述")
-    parser.add_argument("--checkpoint", "-c", type=str, default="checkpoints/dit_epoch16.pth",
+    parser.add_argument("--checkpoint", "-c", type=str, default="checkpoints/dit_epoch24.pth",
                         help="模型检查点路径")
     parser.add_argument("--output", "-o", type=str, default="output.png",
                         help="输出图片路径")
-    parser.add_argument("--cfg_scale", "-g", type=float, default=2.0,
+    parser.add_argument("--cfg_scale", "-g", type=float, default=0.8,
                         help="CFG 引导强度")
     parser.add_argument("--steps", "-s", type=int, default=None,
                         help="采样步数（默认等于训练时的 num_timesteps，设小值可用 DDIM 加速）")
@@ -86,12 +86,11 @@ def ddim_sample(diffusion, model, model_cfg, prompt, device, steps, cfg_scale):
     """
     DDIM 确定性采样，用更少的步数加速推理。
 
-    从训练时的 T 步中均匀抽取 steps 个子步，
-    每步之间直接跳跃，不需要每步都算。
+    使用稳定公式直接从 x_t 跳到 x_{t-Δ}，不显式计算 x0_pred，
+    避免除以 √α̅_t（在大 t 时接近 0）导致的数值爆炸。
     """
     text_encoding = encode_text([prompt], device=device)
 
-    # 从训练步数中均匀选取子序列
     T = diffusion.num_timesteps
     timesteps = torch.linspace(T - 1, 0, steps, dtype=torch.long, device=device)
 
@@ -111,20 +110,21 @@ def ddim_sample(diffusion, model, model_cfg, prompt, device, steps, cfg_scale):
         else:
             noise_pred = model(x, text_encoding, t_batch)
 
-        # 预测 x_0
-        alpha_bar_t = diffusion.alphas_cumprod[t]
-        x0_pred = (x - torch.sqrt(1 - alpha_bar_t) * noise_pred) / torch.sqrt(alpha_bar_t)
-        x0_pred = x0_pred.clamp(-1, 1)  # 干净图片不应超出归一化范围，防止误差放大
-
         # 下一步的 α̅
         t_next = timesteps[i + 1] if i + 1 < len(timesteps) else torch.tensor(-1, device=device)
         if t_next < 0:
-            x = x0_pred  # 最后一步，直接输出 x_0 预测
+            # 最后一步：t=0，直接输出 x_0 预测
+            alpha_bar_t = diffusion.alphas_cumprod[t]
+            x = (x - torch.sqrt(1 - alpha_bar_t) * noise_pred) / torch.sqrt(alpha_bar_t)
         else:
+            alpha_bar_t = diffusion.alphas_cumprod[t]
             alpha_bar_next = diffusion.alphas_cumprod[t_next]
-            # DDIM 确定性更新（σ=0）
-            x = torch.sqrt(alpha_bar_next) * x0_pred + \
-                torch.sqrt(1 - alpha_bar_next) * noise_pred
+            # 稳定 DDIM 更新：x_s = √(α̅_s/α̅_t)·x_t + (√(1-α̅_s) - √(α̅_s·(1-α̅_t)/α̅_t))·ε_θ
+            coef_x = torch.sqrt(alpha_bar_next / alpha_bar_t)
+            coef_noise = torch.sqrt(1 - alpha_bar_next) - torch.sqrt(
+                alpha_bar_next * (1 - alpha_bar_t) / alpha_bar_t
+            )
+            x = coef_x * x + coef_noise * noise_pred
 
         if i % max(1, steps // 5) == 0 or i == len(timesteps) - 1:
             print(f"  step {i+1:3d}/{steps}  t={t.item():4d}  "
