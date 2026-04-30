@@ -1,6 +1,6 @@
 # MC-Gen
 
-基于 DiT (Diffusion Transformer) 生成 Minecraft 风格材质的项目。数据集从公开发布的 mod 中解包。
+基于 DiT (Diffusion Transformer) 生成 16*16尺寸 Minecraft 材质。
 
 
 <img src="large.png" width="512" alt="生成效果">

@@ -1,23 +1,48 @@
 import os
-os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 import torch
 import logging
 from transformers import CLIPTokenizer, CLIPTextModel
 
-# 抑制 transformers 模型加载时的 UNEXPECTED keys 警告（CLIPTextModel 只取文本权重，视觉权重自然跳过）
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
 _tokenizer = None
 _text_encoder = None
+
+# 优先使用本地离线模型（checkpoints/models--openai--clip-vit-base-patch32/），
+# 不存在时自动从镜像站下载。
+# huggingface hub 下载的目录结构为 snapshots/<hash>/，模型文件在 snapshot 里，
+# 需往里找一层；如果是直接放模型文件的目录则直接用。
+_project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+_LOCAL_DIR = os.path.join(_project_root, "checkpoints", "models--openai--clip-vit-base-patch32")
+
+
+def _resolve_model_path(base_dir):
+    """解析本地模型目录：如果是 hub snapshot 结构则深入一层，否则直接用"""
+    if not os.path.isdir(base_dir):
+        return None
+    if os.path.isfile(os.path.join(base_dir, "config.json")):
+        return base_dir
+    snapshots = os.path.join(base_dir, "snapshots")
+    if os.path.isdir(snapshots):
+        for name in os.listdir(snapshots):
+            sub = os.path.join(snapshots, name)
+            if os.path.isdir(sub) and os.path.isfile(os.path.join(sub, "config.json")):
+                return sub
+    return None
+
+
+MODEL_NAME = _resolve_model_path(_LOCAL_DIR) or "openai/clip-vit-base-patch32"
 
 
 def _load_models():
     """延迟加载，首次调用时下载并缓存模型"""
     global _tokenizer, _text_encoder
     if _tokenizer is None:
-        _tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
-        _text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-base-patch32")
+        print(f"Loading CLIP from: {MODEL_NAME}")
+        _tokenizer = CLIPTokenizer.from_pretrained(MODEL_NAME)
+        _text_encoder = CLIPTextModel.from_pretrained(MODEL_NAME)
         _text_encoder.eval()
         for p in _text_encoder.parameters():
             p.requires_grad = False

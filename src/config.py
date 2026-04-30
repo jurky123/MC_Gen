@@ -6,7 +6,7 @@ class ModelConfig:
     # ---- DiT 结构 ----
     embed_dim = 512          # 隐藏层维度
     num_heads = 8            # 注意力头数
-    num_layers = 8          # DiT_block 层数
+    num_layers = 12          # DiT_block 层数
     ffn_dim = 2048           # FFN 中间层维度
     dropout = 0.1            # attention dropout
 
