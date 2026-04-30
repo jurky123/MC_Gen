@@ -29,13 +29,22 @@ src/
 
 ## 依赖
 ```
-- Python 3.10+
-- PyTorch 2.x
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.30.0
+Pillow>=10.0.0
+pandas>=2.0.0
+pyarrow>=12.0.0
+pandas>=3.0.0
+fastparquet>=0.8.0
+pyarrow>=12.0.0
 
 
 ```
 ## 效果
 
 采用单张40GB显存L40训练约12小时，14个epoch后虽然loss还没收敛，但能生成出质量比较好并且符合prompt的图片。
+
+
 <img src="large.png" width="512" alt="生成效果">
 
