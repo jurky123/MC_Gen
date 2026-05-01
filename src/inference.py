@@ -17,9 +17,9 @@ from dit.text_encoder import encode_text
 
 def main():
     parser = argparse.ArgumentParser(description="DiT 材质生成推理")
-    parser.add_argument("--prompt", "-p", type=str, default="water blade",
+    parser.add_argument("--prompt", "-p", type=str, default="ruby bucket",
                         help="文本描述")
-    parser.add_argument("--checkpoint", "-c", type=str, default="checkpoints/dit_epoch29.pth",
+    parser.add_argument("--checkpoint", "-c", type=str, default="checkpoints/dit_epoch44.pth",
                         help="模型检查点路径")
     parser.add_argument("--output", "-o", type=str, default="output.png",
                         help="输出图片路径")
